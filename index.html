@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- CSS disingkat untuk keterbacaan, SILAKAN COPY PASTE CSS LAMA ANDA DI SINI -->
+  <style>
+    :root { --tg-bg: #ffffff; --tg-text: #1c1c1e; --tg-hint: #8e8e93; --tg-link: #2481cc; --tg-button: #2481cc; --tg-button-text: #ffffff; --masuk: #1fae5e; --keluar: #e5484d; --card-bg: #f5f6f8; --border: #e2e4e8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px 16px 130px; font-family: sans-serif; background: var(--tg-bg); color: var(--tg-text); }
+    /* ... MASUKKAN SEMUA CSS DARI SUMBER 5 DI SINI ... */
+  </style>
+</head>
+<body>
+  <!-- HTML Body disingkat untuk keterbacaan, SILAKAN COPY PASTE HTML BODY LAMA ANDA DI SINI -->
+  <!-- ... MASUKKAN SEMUA HTML BODY DARI SUMBER 5 DI SINI ... -->
+
+  <datalist id="barangList"></datalist>
+  <datalist id="unitList"></datalist>
+
+  <script>
+    // 1. KONFIGURASI URL API
+    // GANTI STRING INI DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT ANDA
+    const GAS_URL = "URL_WEB_APP_GAS_ANDA_DISINI";
+
+    // 2. MENGAMBIL PARAMETER DARI URL (Menggantikan <?= ... ?>)
+    const urlParams = new URLSearchParams(window.location.search);
+    var CHAT_ID = urlParams.get('chatId') || "";
+    var NOTA_ID = urlParams.get('notaId') || ""; 
+    var IS_EDIT = NOTA_ID.length > 0;
+    
+    var jenis = "Keluar";
+    var items = [];
+    var itemSeq = 0;
+    var masterBarang = [];
+    var fotoBase64 = null;
+    var fotoMime = null;
+    var removeFotoFlag = false;
+    var hasExistingFoto = false;
+
+    // --- INISIALISASI TELEGRAM ---
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch (e) { }
+
+    function setJenis(j) { /* Sama seperti sumber 5 */ }
+    // ... MASUKKAN FUNGSI BANTUAN LAINNYA (buildItemCard, handleFotoFile, dll) DARI SUMBER 5 DI SINI ...
+
+    // --- MENGGANTI GOOGLE.SCRIPT.RUN DENGAN FETCH ---
+
+    // Submit Data
+    function submitCart() {
+      // ... validasi tetap sama seperti sumber 5 ...
+      var payload = {
+        action: "saveCart", // Tambahan penanda untuk GAS
+        chatId: CHAT_ID,
+        notaId: IS_EDIT ? NOTA_ID : null,
+        jenis: jenis,
+        toko: document.getElementById('toko').value,
+        items: items.map(function (it) { return { row: it.row, nama: it.nama, qty: it.qty, satuan: it.satuan, harga: it.harga, ket: it.ket }; }),
+        fotoBase64: fotoBase64,
+        fotoMime: fotoMime,
+        removeFoto: removeFotoFlag
+      };
+
+      fetch(GAS_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(res => {
+        if(res.success) onSaveSuccess(res);
+        else onSaveError(res.error);
+      })
+      .catch(err => onSaveError(err));
+    }
+
+    // Load Master Data
+    fetch(GAS_URL + "?action=getMasterData")
+      .then(res => res.json())
+      .then(data => {
+        masterBarang = data.barang || [];
+        document.getElementById('barangList').innerHTML = masterBarang.map(m => '<option value="' + m.nama + '">').join('');
+        document.getElementById('relasiList').innerHTML = (data.relasi || []).map(m => '<option value="' + m.nama + '">').join('');
+        document.getElementById('unitList').innerHTML = (data.unitList || []).map(u => '<option value="' + u + '">').join('');
+      })
+      .catch(err => showBanner('⚠️ Gagal memuat data master.'));
+
+    // Load Edit Data (Jika mode Edit)
+    if (IS_EDIT) {
+      document.getElementById('formTitle').textContent = '✏️ Edit Nota';
+      showBanner('⏳ Memuat data nota...');
+      
+      fetch(GAS_URL + "?action=getNotaDetail&notaId=" + NOTA_ID)
+        .then(res => res.json())
+        .then(detail => {
+          hideBanner();
+          if(detail.error) throw new Error(detail.error);
+          setJenis(detail.jenis);
+          // ... lanjutkan populasi data seperti di sumber 5 ...
+        })
+        .catch(err => showBanner('❌ Nota tidak ditemukan.'));
+    } else {
+      // addItem();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- MASUKKAN CSS DARI SUMBER 7 DI SINI -->
+</head>
+<body>
+  <!-- MASUKKAN HTML BODY DARI SUMBER 7 DI SINI -->
+
+  <script>
+    // 1. KONFIGURASI URL API (Sama seperti index.html)
+    const GAS_URL = "URL_WEB_APP_GAS_ANDA_DISINI";
+
+    // 2. MENGAMBIL PARAMETER DARI URL
+    const urlParams = new URLSearchParams(window.location.search);
+    var CHAT_ID = urlParams.get('chatId') || "";
+    
+    var allNota = [];
+    var expandedId = null;
+
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch (e) {}
+
+    // 3. MENGUBAH ARAH LINK (Tidak pakai BASE_URL lagi)
+    function goToCatat(notaId) {
+      var url = './index.html?chatId=' + encodeURIComponent(CHAT_ID) + (notaId ? '&notaId=' + encodeURIComponent(notaId) : '');
+      window.location.href = url;
+    }
+    
+    // ... MASUKKAN FUNGSI FILTER & RENDER DARI SUMBER 7 DI SINI ...
+
+    // 4. MENGGANTI GOOGLE.SCRIPT.RUN DENGAN FETCH
+
+    function doDeleteItem(row) {
+      fetch(GAS_URL, { method: "POST", body: JSON.stringify({action: "deleteNotaItem", row: row}) })
+        .then(res => res.json())
+        .then(() => loadData())
+        .catch(err => alert('Gagal hapus item'));
+    }
+
+    function doDeleteNota(notaId) {
+      expandedId = null;
+      fetch(GAS_URL, { method: "POST", body: JSON.stringify({action: "deleteNota", notaId: notaId}) })
+        .then(res => res.json())
+        .then(() => loadData())
+        .catch(err => alert('Gagal hapus nota'));
+    }
+
+    function loadData() {
+      document.getElementById('loading').style.display = 'block';
+      fetch(GAS_URL + "?action=getNotaList")
+        .then(res => res.json())
+        .then(list => {
+          allNota = list || [];
+          document.getElementById('loading').style.display = 'none';
+          buildPeriodeOptions();
+          applyFilters();
+        })
+        .catch(err => {
+          document.getElementById('loading').textContent = '❌ Gagal memuat data.';
+        });
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
